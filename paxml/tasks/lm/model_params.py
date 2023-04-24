@@ -723,6 +723,8 @@ class TransformerLmSpmdPipelineAdafactor(TransformerLmSpmdAdafactor):
   # Whether to do input/output streaming across stages. This is typicall useful
   # for DCN.
   STREAM_IO = False
+  # Whether to do ALIBI for positional embedding
+  USE_ALIBI = False
 
   def task(self) -> tasks_lib.SingleTask.HParams:
     """Returns the task parameters."""
@@ -755,8 +757,11 @@ class TransformerLmSpmdPipelineAdafactor(TransformerLmSpmdAdafactor):
       model_p.lm_tpl.separate_embedding_tpl = pax_fiddle.Config(
           layers.Embedding
       )
+      model_p.lm_tpl.embeding_ln = pax_fiddle.Config(layers.LayerNorm)
       model_p.lm_tpl.softmax_tpl = pax_fiddle.Config(layers.FullSoftmax)
-
+      if self.USE_ALIBI:
+        model_p.lm_tpl.alibi_pos_embedding = pax_fiddle.Config(layers.ALliBiPositionalEmbedding)
+      
     softmax_init = WeightInit.Gaussian(1.0 / math.sqrt(self.MODEL_DIMS))
     # pytype: disable=attribute-error  # enable-nested-classes
     model_p.lm_tpl.softmax_tpl.params_init = softmax_init

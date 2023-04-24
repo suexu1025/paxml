@@ -530,6 +530,67 @@ def configure_gpt3_task(
 
   return task_p
 
+def configure_bloom_task(
+    cls,
+    task_p: tasks_lib.SingleTask.HParams,
+) -> tasks_lib.SingleTask.HParams:
+  """Returns task with bloom related configs."""
+  model_p = task_p.model  # pytype: disable=attribute-error  # enable-nested-classes
+
+  model_p.USE_ALIBI = True
+
+  model_p.decoder_tpl.eos_id = (
+      GPT_EOS_ID  # pytype: disable=attribute-error  # enable-nested-classes
+  )
+  model_p.decoder_tpl.seqlen = cls.MAX_SEQ_LEN  # pytype: disable=attribute-error  # enable-nested-classes
+
+  model_p.params_init = WeightInit.Gaussian(0.006)
+
+  softmax_init = WeightInit.Gaussian(0.006)
+  model_p.lm_tpl.softmax_tpl.params_init = softmax_init
+  model_p.lm_tpl.softmax_tpl.feed_forward_tpl.has_bias = False
+  model_p.lm_tpl.softmax_tpl.soft_cap_logits = None
+
+  if cls.SEPARATE_EMBEDDING:
+    model_p.lm_tpl.separate_embedding_tpl.scale_sqrt_depth = False
+    model_p.lm_tpl.separate_embedding_tpl.lookup_style = (
+        cls.EMBEDDING_LOOKUP_STYLE
+    )
+  else:
+    model_p.lm_tpl.softmax_tpl.scale_sqrt_depth = False
+    model_p.lm_tpl.softmax_tpl.lookup_style = cls.EMBEDDING_LOOKUP_STYLE
+  if cls.TRAINABLE_POSITION_EMB:
+    model_p.lm_tpl.position_emb_tpl.lookup_style = cls.EMBEDDING_LOOKUP_STYLE
+
+  stacked_p = model_p.lm_tpl.stacked_transformer_tpl
+  if stacked_p.cls == transformers.PipelinedTransformer:
+    stacked_p = stacked_p.pipeline_stage
+  if issubclass(stacked_p.cls, transformers.StackedTransformerRepeated):
+    stacked_p = stacked_p.block
+  transformer_layer_p = stacked_p.transformer_layer_params_tpl
+
+  transformer_layer_p.ln_tpl.epsilon = cls.LAYERNORM_EPSILON
+  transformer_layer_p.tr_fflayer_tpl.ln_tpl.epsilon = cls.LAYERNORM_EPSILON
+  model_p.lm_tpl.final_ln_tpl.epsilon = cls.LAYERNORM_EPSILON
+  transformer_layer_p.tr_atten_tpl.internal_enable_per_dim_scale = False
+  transformer_layer_p.tr_atten_tpl.use_bias = True
+
+  transformer_layer_p.tr_fflayer_tpl.activation_tpl.approximate = True
+
+  for atten_p in (
+      transformer_layer_p.tr_atten_tpl,
+      transformer_layer_p.cross_atten_tpl,
+  ):
+    if atten_p is None:
+      continue
+    atten_wp = atten_p.weight_split_dims_mapping
+    atten_wp.proj = ['data', 'mdl', None]
+
+  if task_p.early_stopping_fn is None:
+    task_p.early_stopping_fn = EarlyStoppingFn.HParams()
+    task_p.early_stopping_fn.target_log_pplx = cls.TARGET_LOG_PPLX
+
+  return task_p
 
 @experiment_registry.register
 class C4SpmdAdam(TransformerLmSpmdAdam,
@@ -1006,3 +1067,59 @@ class C4SpmdPipelineGpt3SmallAdam8Replicas(C4SpmdPipelineGpt3AdamOrgHP):
   EVAL_INTERVAL_STEPS = 10
   SUMMARY_INTERVAL_STEPS = 5
   CHECKPOINT_EVERY_N_STEPS = 200
+
+@experiment_registry.register
+class C4SpmdGpt3AdamDataParallel2x16x16(C4SpmdGpt3AdamOrgHP):
+  r"""Cross-slice data-parallel GPT-3 config."""
+
+  # 2 x v5litepod-256
+
+  PERCORE_BATCH_SIZE = 0.5  # 512 global batch size
+  ICI_MESH_SHAPE = [1, 16, 16]
+  DCN_MESH_SHAPE = [2, 1, 1]
+  FPROP_DTYPE = jnp.bfloat16
+
+  def task(self) -> tasks_lib.SingleTask.HParams:
+      task_p = super().task()
+      task_p.train.num_train_steps = 1000
+      return task_p
+
+@experiment_registry.register
+class C4SpmdGpt3AdamDataParallel1x2x4(C4SpmdGpt3AdamOrgHP):
+  r"""Cross-slice data-parallel GPT-3 config."""
+
+  NUM_LAYERS = 16
+  NUM_HEADS = 16
+  MODEL_DIMS = 4096
+  # Known as MLP_DIM in t5x
+  HIDDEN_DIMS = MODEL_DIMS * 4
+
+  
+  PERCORE_BATCH_SIZE = 0.5  # 512 global batch size
+  ICI_MESH_SHAPE = [1, 2, 4]
+  DCN_MESH_SHAPE = [1, 1, 1]
+  FPROP_DTYPE = jnp.bfloat16
+
+  def task(self) -> tasks_lib.SingleTask.HParams:
+      task_p = super().task()
+      task_p.train.num_train_steps = 1000
+      return task_p
+
+class C4SpmdBloomadamDataParallel1x2x4(C4SpmdGpt3AdamOrgHP):
+  r"""Cross-slice data-parallel GPT-3 config."""
+
+  NUM_LAYERS = 16
+  NUM_HEADS = 16
+  MODEL_DIMS = 4096
+  # Known as MLP_DIM in t5x
+  HIDDEN_DIMS = MODEL_DIMS * 4
+
+  
+  PERCORE_BATCH_SIZE = 0.5  # 512 global batch size
+  ICI_MESH_SHAPE = [1, 2, 4]
+  DCN_MESH_SHAPE = [1, 1, 1]
+  FPROP_DTYPE = jnp.bfloat16
+
+  def task(self) -> tasks_lib.SingleTask.HParams:
+    task_p = super().task()
+    task_p = configure_gpt3_task(self, task_p)

@@ -53,7 +53,7 @@ def tearDownModule():
 class C4Test(test_utils.TestCase):
 
   def test_gpt3_mlperf_bs1p5k_config(self):
-    config = c4.C4SpmdPipelineGpt3AdamMLPerfHPBS1p5k768Replicas()
+    config = c4.C4SpmdBloomadamDataParallel1x2x4()
     task_p = config.task()
 
     # Model architecture
