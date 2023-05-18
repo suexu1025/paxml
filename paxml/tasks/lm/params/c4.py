@@ -1031,6 +1031,14 @@ class C4SpmdGpt3L16AdamOrgHP(C4SpmdGpt3AdamOrgHP):
   EVAL_INTERVAL_STEPS = 25000
   ICI_MESH_SHAPE = [1, 16, 4]
 
+@experiment_registry.register
+class C4SpmdGpt3L16AdamOrgHP128Replicas(C4SpmdGpt3AdamOrgHP):
+  r"""Small GPT-3 config in bf16 for 64 replicas with 192 global batch size."""
+  NUM_LAYERS = 16
+  FPROP_DTYPE = jnp.bfloat16
+  PERCORE_BATCH_SIZE = 3
+  EVAL_INTERVAL_STEPS = 25000
+  ICI_MESH_SHAPE = [1, 16, 8]
 
 @experiment_registry.register
 class C4SpmdPipelineGpt3SmallAdam8Replicas(C4SpmdPipelineGpt3AdamOrgHP):
