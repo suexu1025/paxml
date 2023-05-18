@@ -665,6 +665,18 @@ class C4SpmdGpt3AdamOrgHPBS1p5k1536Replicas(C4SpmdGpt3AdamOrgHP):
   EVAL_INTERVAL_STEPS = 25
   SUMMARY_INTERVAL_STEPS = 1
 
+@experiment_registry.register
+class C4SpmdGpt3AdamOrgHPBS64p128Replicas(C4SpmdGpt3AdamOrgHP):
+  r"""GPT-3 config in fp32 for 1536 replicas with 1536 global batch size."""
+  # Padded to TPU friendly size
+  VOCAB_SIZE = 51200
+
+  PERCORE_BATCH_SIZE = 1
+  ICI_MESH_SHAPE = [1, 8, 16]
+  FPROP_DTYPE = jnp.float32
+  CHECKPOINT_MAX_TO_KEEP = 100
+  EVAL_INTERVAL_STEPS = 25
+  SUMMARY_INTERVAL_STEPS = 1
 
 @experiment_registry.register
 class C4SpmdPipelineAdam(TransformerLmSpmdPipelineAdam, C4UnsupervisedDataset):
