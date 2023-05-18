@@ -842,6 +842,22 @@ class C4SpmdPipelineGpt3AdamMLPerfHPBS2k512Replicas(
   CHECKPOINT_EVERY_N_STEPS = EVAL_INTERVAL_STEPS * 2
   STREAM_IO = True
 
+@experiment_registry.register
+class C4SpmdPipelineGpt3AdamMLPerfHPBS64128Replicas(
+    C4SpmdPipelineGpt3AdamMLPerfHP
+):
+  r"""GPT-3 config in fp32 for 512 replicas with 2k global batch size.
+
+  Following MLPerf training benchmarking HP requirements.
+  """
+  PERCORE_BATCH_SIZE = 0.5
+  NUM_STAGES = 1
+  ICI_MESH_SHAPE = [1, 1, 8, 16]
+  # NUM_MICROBATCHS = 256
+  MICROBATCH_SIZE = 1
+  EVAL_INTERVAL_STEPS = 12
+  CHECKPOINT_EVERY_N_STEPS = EVAL_INTERVAL_STEPS * 2
+  STREAM_IO = False
 
 @experiment_registry.register
 class C4SpmdPipelineGpt3AdamMLPerfHPBS3k768Replicas(
