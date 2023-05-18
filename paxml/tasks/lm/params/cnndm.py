@@ -1182,3 +1182,27 @@ class C4SpmdGpt3AdamDataParallelMLPerfHPBS2k(CnndmSpmdGpt3AdamMLPerfHP):
 
     task_p.train.decode_interval_steps = 50
     return task_p
+
+@experiment_registry.register
+class C4SpmdGpt3AdamDataParallelL16(CnndmSpmdGpt3AdamMLPerfHP):
+  # 276 steps to 2.69, and ~35.8 secs / step.
+  # https://tensorboard.corp.google.com/experiment/1724103233260043520
+  # http://xprof/?session_id=sgpyc-8108798425837854114
+  r"""Cross-slice data-parallel GPT-3 config."""
+  NUM_LAYERS = 16
+  PERCORE_BATCH_SIZE = 0.5  # 2048 global batch size
+  ICI_MESH_SHAPE = [1, 8, 16]
+  DCN_MESH_SHAPE = [1, 1, 1]
+  EVAL_INTERVAL_STEPS = 12
+  QUANTIZATION = None
+  PERCORE_EVAL_BATCH_SIZE = 0.5
+
+  def task(self) -> tasks_lib.SingleTask.HParams:
+    """Returns the task parameters."""
+    task_p = super().task()
+    if self.QUANTIZATION is not None:
+      model_p = task_p.model
+      quant.apply_quantized_layers_sharded(model_p, self.QUANTIZATION)
+
+    task_p.train.decode_interval_steps = 50
+    return task_p
