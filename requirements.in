@@ -1,12 +1,13 @@
 # To update requirements.txt for praxis and paxml, run:
 # bash ./compile_requirements.sh
 
+aqtp
 absl-py
 clu
 etils
 flax
 graphviz
-jax @ git+https://github.com/google/jax
+# jax @ git+https://github.com/google/jax
 lingvo
 numpy
 orbax-checkpoint
