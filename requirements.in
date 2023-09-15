@@ -11,7 +11,6 @@ graphviz
 lingvo
 numpy
 orbax-checkpoint
-praxis
 protobuf==3.19.6
 pyglove
 seqio-nightly
