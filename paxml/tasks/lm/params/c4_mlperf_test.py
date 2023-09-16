@@ -263,7 +263,7 @@ class C4SpmdGpt3AdamDataParallel16x16x16(C4SpmdGpt3AdamMLPerfHP):
   jax.config.update("jax_softmax_custom_jvp", False)
 
   PERCORE_EVAL_BATCH_SIZE = 1.5
-  EVAL_INTERVAL_STEPS = 4
+  EVAL_INTERVAL_STEPS = 12
   EVAL_SKIP_TRAIN = True
 
   def task(self) -> pax_fiddle.Config[tasks_lib.SingleTask]:
