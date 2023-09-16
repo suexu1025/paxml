@@ -78,7 +78,7 @@ _MLPERF_GPT3_SUMMARY_VERBOSITY = flags.DEFINE_integer(
 )
 _MLPERF_GPT3_TRACE_STEP = flags.DEFINE_integer(
     'mlperf_gpt3_trace_step',
-    8,
+    0,
     'Set to zero to disable profiler trace.',
 )
 _MLPERF_GPT3_START_TRACE_STEP = flags.DEFINE_integer(
