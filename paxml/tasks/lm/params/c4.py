@@ -129,7 +129,7 @@ TaskRegistry.add_versioned_tfds_task(
     ],
     output_features=C4_GPT_TRAIN_FEATURES_LM,
     metric_fns=[],
-    shuffle_buffer_size=10000,
+    shuffle_buffer_size=128,
 )
 
 TaskRegistry.add_versioned_tfds_task(
