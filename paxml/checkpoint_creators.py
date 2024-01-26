@@ -34,7 +34,7 @@ from praxis import base_input
 from praxis import pax_fiddle
 from praxis import py_utils
 from praxis import pytypes
-
+from paxml import checkpoint_version
 from paxml import checkpoints  # mapped to internal
 # Internal filesystem import
 
@@ -126,9 +126,11 @@ def _restore_from_external_checkpoint(
   checkpointer = Checkpointer(checkpoint_handler)
   return checkpointer.restore(
       path,
-      item=train_state_metadata,
-      partitioner=partitioner,
-      transformations=transformations,
+      item=train_state_metadata.padded_global_shapes,
+      mesh=partitioner.global_mesh,
+      version=checkpoint_version.get_version(tensorstore_use_ocdbt=False),
+      transforms=transformations,
+      specs=train_state_metadata.partition_specs,
   )
 
 
